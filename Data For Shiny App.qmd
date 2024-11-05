@@ -202,10 +202,9 @@ ggplot(us_superstore_data, aes(x = `Order Date`, y = Sales)) +
 Suppose we only care about last year's sales. We can utilize the `limit` argument in `scale_x_date` to restrict range of dates. 
 
 ```{r}
-
 ggplot(us_superstore_data, aes(x = `Order Date`, y = Sales)) + 
   geom_line() +
-  scale_x_date(limit=c(as.Date("2017-01-01"), as.Date("2017-12-31")))
+  scale_x_date(limit=c(as.Date("2017-01-01"), as.Date("2017-12-31"))) 
 ```
 
 
