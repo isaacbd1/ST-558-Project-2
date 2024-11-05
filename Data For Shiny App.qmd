@@ -13,7 +13,7 @@ First, we read in the data.
 ```{r}
 library(readxl)
 
-us_superstore_data <- read_excel("US Superstore data.xls")
+us_superstore_data <- read_excel("us_superstore_data.xls")
 us_superstore_data
 ```
 
