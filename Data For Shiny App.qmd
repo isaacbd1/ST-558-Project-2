@@ -1,0 +1,220 @@
+---
+title: "Data For Shiny App"
+format: html
+editor: visual
+---
+
+## Exploratory Data Analysis
+
+To get a feel for the data that we will use for the Shiny app, we will do some basic exploratory data analysis on the dataset. The dataset is the "US Superstore data" dataset from Kaggle.
+
+First, we read in the data.
+
+```{r}
+library(readxl)
+
+us_superstore_data <- read_excel("US Superstore data.xls")
+us_superstore_data
+```
+
+First, note that there are 9994 row observations. Next, "Row ID" and "Postal Code" are dbls, i.e. quantitative variables. This is not ideal for data analysis, so we will coerce their type to be "character" instead. Secondly, we coerce the data type for "Order Date" and "Ship Date" to be "date", since the values these variables take on are dates.
+
+```{r}
+library(lubridate)
+library(tidyverse)
+
+us_superstore_data <- us_superstore_data |>
+  mutate(`Row ID` = as.character(`Row ID`),
+         `Postal Code` = as.character(`Postal Code`),
+         `Order Date` = ymd(`Order Date`),
+         `Ship Date` = ymd(`Ship Date`))
+
+us_superstore_data
+```
+
+Now, consider the 1-way contingency tables below...
+
+```{r}
+table(us_superstore_data$`Ship Mode`)
+```
+
+```{r}
+table(us_superstore_data$Segment)
+```
+
+```{r}
+table(us_superstore_data$Region)
+```
+
+These categorical variables are best represented as factors since they take on only a few different (non-numeric) values. Thus, we coerce their data type to be "factor."
+
+```{r}
+us_superstore_data <- us_superstore_data |>
+  mutate(`Ship Mode` = factor(`Ship Mode`, levels = c("Same Day", "First Class", "Second Class", 
+                                                      "Standard Class"), labels = c("Same Day", 
+                                                                                    "First Class", 
+                                                                                    "Second Class", 
+                                                                                    "Standard Class")),
+         Segment = as.factor(Segment),
+         Region = as.factor(Region) 
+         )
+
+us_superstore_data
+```
+
+Next, consider the 2-way contingency table for "Category" and "Sub-Category".
+
+```{r}
+table(us_superstore_data$Category, us_superstore_data$`Sub-Category`)
+```
+
+This clearly shows us which category each sub-category belongs to. Note that no subcategory belongs to more than 1 category, which is good because otherwise that could complicate our analysis.
+
+Let's consider one more 2-way contingency table.
+
+```{r}
+table(us_superstore_data$Region, us_superstore_data$Category)
+```
+
+From the table above we see that office supplies are the most popular category of products purchased, and unsurprisingly the majority of purchases are in the east and west coasts (where populations are the greatest).
+
+Next, let's numerically summarize the categorical variables. First let's consider measures of center of the numeric variables.
+
+```{r}
+us_superstore_data |>
+  summarize(across(where(is.numeric), 
+                   list("Mean" = mean, "Median" = median), 
+                   .names = "{.fn}_{.col}"))
+```
+
+The mean for "Sales" is a bit larger than the median for "Sales" -by a factor greater than 4 in fact- indicating that the "Sales" data is skewed upwards. This either means that there must be a few very expensive products or some very large orders of products. Additionally, the mean for "Profit" is a bit larger than the median for "Profit", by a factor of greater than 3. This tracks with the skewness in "Sales", since more expensive items have the potential to yield a greater a profit margin.
+
+Unsurprisingly, the mean and median for "Discount" are quite comparable. It's not uncommon for products to be sold at a discount, but we can expect that only rarely will the discounts be particularly large and for probably only a select few items.
+
+Next, let's consider measures of spread.
+
+```{r}
+us_superstore_data |>
+  summarize(across(where(is.numeric), 
+                   list("Max" = max, "Min" = min, "IQR" = IQR, "Std" = sd), 
+                   .names = "{.fn}_{.col}"))
+```
+
+The table above seems to validate my initial assumptions. Indeed, there are definitely outliers in the "Sales" column, in both directions away from the mean. Interestingly, "Profit", which did not appear to be quite as skewed as "Sale", has the greatest range of them all, from nearly -\$6600 to nearly \$8400. Nonetheless, these must be from a just a small handful of extreme outliers, because the interquartile range is just about \$27.
+
+Let's now get a little more specific and find the measures of center and spread for each category and sub-category of products.
+
+```{r}
+us_superstore_data |>
+  group_by(Category, `Sub-Category`) |>
+  drop_na(Category, `Sub-Category`) |>
+  summarize(across(where(is.numeric), 
+                   list("Mean" = mean, "Median" = median), 
+                   .names = "{.fn}_{.col}"))
+```
+
+```{r}
+us_superstore_data |>
+  group_by(Category, `Sub-Category`) |>
+  drop_na(Category, `Sub-Category`) |>
+  summarize(across(where(is.numeric), 
+                   list("Max" = max, "Min" = min, "IQR" = IQR, "Std" = sd), 
+                   .names = "{.fn}_{.col}"))
+```
+
+To get a better idea of specific trends within this dataset, we will make some plots. 
+
+First, let's create a pie chart to visualize the proportion of sales each region makes up.
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+total_sales <- sum(us_superstore_data$Sales)
+
+for (region in unique(us_superstore_data$Region)) {
+  sales_by_region <- us_superstore_data |>
+    filter(Region == region)
+  regional_sales <- sum(sales_by_region$Sales)
+}
+
+ggplot(us_superstore_data, aes(x = "", y = regional_sales/total_sales, fill = Region)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  theme_void()
+```
+Next, let's consider a bar plot for "Ship Mode", broken up by region. 
+
+```{r}
+ggplot(data = us_superstore_data, aes(x = `Ship Mode`, fill = Region)) +
+ geom_bar(position = "stack") +
+ labs(x = "Ship Mode", y = "Count")+
+ scale_fill_discrete("Region")
+```
+
+Regardless of region, the vast majority pick "Standard Class" shipping, and few ever pick "Same Day" shipping. Also, each region seems to follow a similar pattern in terms of the proportion of people that pick more expensive shipping options to the "Standard Class" shipping option. 
+
+Let's now consider a boxplots to for sales by category. 
+
+```{r}
+ggplot(us_superstore_data |> filter(Profit <= 250 & Profit >= -250), 
+       aes(x = Category, y = Profit, fill = Category)) + 
+  geom_boxplot() 
+```
+
+From the above boxplot, it seems that Furniture is the least profitable category of items, and technology is the most profitable of items. 
+
+Now, let's consider the profit across category by region. Perhaps furniture is more profitable in a particular region, and less profitable in others. If so, we might be able to increase its profitability by pushing for more furniture sales in the profitable region, and de-emphasizing sales in the not-profitable regions. 
+
+```{r}
+ggplot(us_superstore_data |> filter(Profit <= 250 & Profit >= -250), 
+       aes(x = Category, y = Profit, fill = Category)) + 
+  geom_boxplot() +
+  facet_wrap(~ Region)
+```
+Off first glance, it looks like furniture is most profitable in the south and least profitable in the central region of the USA. Let's further filter profit so that we are ignoring most outliers, and primarily focusing on the interquartile range. 
+
+```{r}
+ggplot(us_superstore_data |> filter(Profit <= 100 & Profit >= -100), 
+       aes(x = Category, y = Profit, fill = Category)) + 
+  geom_boxplot() +
+  facet_wrap(~ Region)
+```
+Indeed, furniture is most profitable in the south, and overall not very profitable in the central region of the USA. We should continue selling furniture the south, east, and west coast, and especially push it in the south, however stop or greatly reduce the selling of furnitre in the central region of the USA. 
+
+Next let's see what trend between sales and profit looks like, across category.
+
+```{r}
+ggplot(us_superstore_data |> filter(Profit <= 250 & Profit >= -250), aes(x = Sales, y = Profit, color = Category)) + 
+  geom_point() +
+  geom_smooth(method = lm)
+```
+
+Unsurprisingly, there is a positive correlation between sales and profits. Moreover, the scatterplot above shows that indeed, across sales, technology is the most profitable category of items. Office supplies is also a highly profitable category across sales, almost matching technology, however furniture is not nearly as profitable across sales. 
+
+Lastly, let's consider a time series plot.
+
+```{r}
+
+ggplot(us_superstore_data, aes(x = `Order Date`, y = Sales)) + 
+  geom_line() 
+```
+Suppose we only care about last year's sales. We can utilize the `limit` argument in `scale_x_date` to restrict range of dates. 
+
+```{r}
+
+ggplot(us_superstore_data, aes(x = `Order Date`, y = Sales)) + 
+  geom_line() +
+  scale_x_date(limit=c(as.Date("2017-01-01"), as.Date("2017-12-31")))
+```
+
+
+
+
+
+
+
+
+
+
+
