@@ -12,7 +12,7 @@ ui <- fluidPage(
       conditionalPanel(
         condition = '$.inArray("Ship Mode", input.cat_vars) > -1',
         checkboxGroupInput("ship_modes", "Ship Mode Options", choices = append(as.vector(sort(unique((us_superstore_data$`Ship Mode`)))), "All of the above"),
-        selected = "All of the above")
+                           selected = "All of the above")
       ),
       conditionalPanel(
         condition = '$.inArray("Segment", input.cat_vars) > -1',
@@ -27,7 +27,7 @@ ui <- fluidPage(
       conditionalPanel(
         condition = '$.inArray("State", input.cat_vars) > -1',
         selectInput("states", "State Options", choices = append(as.vector(sort(unique((us_superstore_data$State)))), "All states"),
-                           selected = "All states")
+                    selected = "All states")
       ),
       conditionalPanel(
         condition = '$.inArray("City", input.cat_vars) > -1',
@@ -37,12 +37,12 @@ ui <- fluidPage(
       conditionalPanel(
         condition = '$.inArray("Category", input.cat_vars) > -1',
         checkboxGroupInput("categories", "Category Options", choices = append(as.vector(sort(unique((us_superstore_data$Category)))), "All of the above"),
-                    selected = "All of the above")
+                           selected = "All of the above")
       ),
       conditionalPanel(
         condition = '$.inArray("Sub-Category", input.cat_vars) > -1',
         selectInput("sub_categories", "Sub-Category Options", choices = append(as.vector(sort(unique((us_superstore_data$`Sub-Category`)))), "All sub-categories"),
-                           selected = "All sub-categories")
+                    selected = "All sub-categories")
       ),
       radioButtons("num_var1", "Select a numeric variable:", choices = c("Sales", "Quantity", "Discount", "Profit"), selected = character(0)), 
       conditionalPanel(
@@ -85,8 +85,9 @@ ui <- fluidPage(
         id = "tabset",
         tabPanel("About"),
         tabPanel("Data Download",
-                 DT::dataTableOutput("subsetted_data_table")
-                 ),
+                 DT::dataTableOutput("subsetted_data_table"),
+                 downloadButton("subsetted_data_file", "Download")
+        ),
         tabPanel("Data Exploration")
       )
     )
@@ -99,110 +100,41 @@ server <- function(input, output) {
     if (input$num_var1 == input$num_var2) {
       validate("You must select two distinct numeric variables!")
     }
-    else if (input$num_var1 == "Sales") {
-      if (input$num_var2 == "Quantity") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Sales >= input$sales_range1[1] & Sales <= input$sales_range1[2]) |>
-          filter(Quantity >= input$quantity_range2[1] & Quantity <= input$quantity_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Sales") {
-      if (input$num_var2 == "Discount") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Sales >= input$sales_range1[1] & Sales <= input$sales_range1[2]) |>
-          filter(Discount >= input$discount_range2[1] & Discount <= input$discount_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Sales") {
-      if (input$num_var2 == "Profit") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Sales >= input$sales_range1[1] & Sales <= input$sales_range1[2]) |>
-          filter(Profit >= input$profit_range2[1] & Profit <= input$profit_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Quantity") {
-      if (input$num_var2 == "Sales") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Quantity >= input$quantity_range1[1] & Quantity <= input$quantity_range1[2]) |>
-          filter(Sales >= input$sales_range2[1] & Sales <= input$sales_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Quantity") {
-      if (input$num_var2 == "Discount") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Quantity >= input$quantity_range1[1] & Quantity <= input$quantity_range1[2]) |>
-          filter(Discount >= input$discount_range2[1] & Discount <= input$discount_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Quantity") {
-      if (input$num_var2 == "Profit") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Quantity >= input$quantity_range1[1] & Quantity <= input$quantity_range1[2]) |>
-          filter(Profit >= input$profit_range2[1] & Profit <= input$profit_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Discount") {
-      if (input$num_var2 == "Sales") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Discount >= input$discount_range1[1] & Discount <= input$discount_range1[2]) |>
-          filter(Sales >= input$sales_range2[1] & Sales <= input$sales_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Discount") {
-      if (input$num_var2 == "Quantity") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Discount >= input$discount_range1[1] & Discount <= input$discount_range1[2]) |>
-          filter(Quantity >= input$quantity_range2[1] & Quantity <= input$quantity_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Discount") {
-      if (input$num_var2 == "Profit") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Discount >= input$discount_range1[1] & Discount <= input$discount_range1[2]) |>
-          filter(Profit >= input$profit_range2[1] & Profit <= input$profit_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Profit") {
-      if (input$num_var2 == "Sales") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Profit >= input$profit_range1[1] & Profit <= input$profit_range1[2]) |>
-          filter(Sales >= input$sales_range2[1] & Sales <= input$sales_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Profit") {
-      if (input$num_var2 == "Quantity") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Profit >= input$profit_range1[1] & Profit <= input$profit_range1[2]) |>
-          filter(Quantity >= input$quantity_range2[1] & Quantity <= input$quantity_range2[2])
-      }
-    }
-    else if (input$num_var1 == "Profit") {
-      if (input$num_var2 == "Discount") {
-        us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
-          filter(Profit >= input$profit_range1[1] & Profit <= input$profit_range1[2]) |>
-          filter(Discount >= input$discount_range2[1] & Discount <= input$discount_range2[2])
-      }
-    }
     else {
-      us_superstore_data
+      cat_var_levels <- list()
+      num_var_list1 <- list("Sales" = input$sales_range1, "Quantity" = input$quantity_range1, "Discount" = input$discount_range1, "Profit" = input$profit_range1)
+      num_var_list2 <- list("Sales" = input$sales_range2, "Quantity" = input$quantity_range2, "Discount" = input$discount_range2, "Profit" = input$profit_range2)
+      
+      for (selection1 in names(num_var_list1)) {
+        if (selection1 != input$num_var1) {
+          next
+        }
+        else {
+          for (selection2 in names(num_var_list2)) {
+            if (selection2 != input$num_var2) {
+              next
+            }
+            else {
+              us_superstore_data |>
+                select(input$cat_vars, input$num_var1, input$num_var2) |>
+                filter(!!sym(input$num_var1) %in% num_var_list1[[selection1]]) |>
+                filter(!!sym(input$num_var2) %in% num_var_list2[[selection2]])
+            }
+          }
+        }
+      }
     }
   })
   
   output$subsetted_data_table <- DT::renderDataTable(
     subsetted_data()
   )
+  
+  output$subsetted_data_file <- downloadHandler(
+    function(){"subsetted_data.xls"}, 
+    function(file_name){write_excel_csv(subsetted_data(), file_name)}
+  )
+  
 }
 
 shinyApp(ui = ui, server = server)

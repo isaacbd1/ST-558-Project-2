@@ -61,11 +61,6 @@ us_superstore_data <- us_superstore_data |>
 
 us_superstore_data
 ```
-```{r}
-colnames(us_superstore_data)[18]
-```
-
-
 
 Next, consider the 2-way contingency table for "Category" and "Sub-Category".
 

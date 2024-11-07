@@ -50,9 +50,13 @@ ui <- fluidPage(
         id = "tabset",
         tabPanel("About"),
         tabPanel("Data Download",
-                 DT::dataTableOutput("subsetted_data_table")
+                 DT::dataTableOutput("subsetted_data_table"),
+                 downloadButton("subsetted_data_file", "Download")
                  ),
-        tabPanel("Data Exploration")
+        tabPanel("Data Exploration",
+                 selectInput("summaries", "Statistical Summaries", choices = c("Categorical Summary", "Numeric Summary", "Both"), selected = NULL),
+                 DT::dataTableOutput("contingency_table"),
+                 DT::dataTableOutput("numeric_statistics")
       )
     )
   )
@@ -139,7 +143,7 @@ server <- function(input, output) {
     else if (input$num_var1 == "Profit") {
       if (input$num_var2 == "Sales") {
         us_superstore_data |> 
-          select(input$cat_vars, input$num_var1, input$num_var2) |>
+          select(!!sym(input$cat_vars), !!sym(input$num_var1), !!sym(input$num_var2)) |>
           filter(Profit >= input$profit_range1[1] & Profit <= input$profit_range1[2]) |>
           filter(Sales >= input$sales_range2[1] & Sales <= input$sales_range2[2])
       }
@@ -165,9 +169,23 @@ server <- function(input, output) {
     }
   })
   
-  output$subsetted_data_table <- DT::renderDataTable(
+  output$subsetted_data_table <- DT::renderDataTable({
     subsetted_data()
+  })
+  
+  output$contingency_table <- DT::renderDataTable({
+    selected_cat_vars <- c(),
+    for (cat_var in input$cat_vars) {
+      selected_cat_vars <- append(selected_cat_vars, cat_var)
+      table(subsetted_data()$selected_cat_vars)
+    }
+  })
+  
+  output$subsetted_data_file <- downloadHandler(
+    function(){"subsetted_data.xls"}, 
+    function(file_name){write_excel_csv(subsetted_data(), file_name)}
   )
+
 }
 
 shinyApp(ui = ui, server = server)
